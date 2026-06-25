@@ -1,0 +1,75 @@
+services:
+
+  redpanda:
+    image: redpandadata/redpanda:latest
+    command:
+      - redpanda
+      - start
+      - --kafka-addr=internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr=internal://redpanda:9092,external://localhost:19092
+      - --mode=dev-container
+      - --smp=1
+    ports:
+      - "19092:19092"   # внешний доступ (IDE, тесты) через localhost:19092
+    healthcheck:
+      test: [ "CMD-SHELL", "rpk cluster health | grep -q 'Healthy:.*true'" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  order-service:
+    build: ./services/order-service
+    ports:
+      - "8080:8080"
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=redpanda:9092
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-order:5432/order_service
+      - SPRING_DATASOURCE_USERNAME=order_user
+      - SPRING_DATASOURCE_PASSWORD=order_pass
+    depends_on:
+      postgres-order:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  postgres-order:
+    image: postgres:17
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=order_service
+      - POSTGRES_USER=order_user
+      - POSTGRES_PASSWORD=order_pass
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "order_user", "-d", "order_service"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  payment-service:
+    build: ./services/payment-service
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=redpanda:9092
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-payment:5432/payment_service
+      - SPRING_DATASOURCE_USERNAME=payment_user
+      - SPRING_DATASOURCE_PASSWORD=payment_pass
+    depends_on:
+      postgres-payment:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  postgres-payment:
+    image: postgres:17
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=payment_service
+      - POSTGRES_USER=payment_user
+      - POSTGRES_PASSWORD=payment_pass
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "payment_user", "-d", "payment_service" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
