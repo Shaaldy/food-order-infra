@@ -194,7 +194,6 @@ curl -X POST http://localhost:8080/api/orders/{id}/cancel
 - [x] **Stage 5** — Choreography Saga (отмена + компенсирующий возврат, ledger, двухуровневая идемпотентность)
 - [x] **Stage 8** — Observability (метрики + распределённый трейсинг)
 - [x] **Stage 9** — CI (GitHub Actions, юниты + интеграционные тесты)
-- [ ] **Stage 10** — Документация (этот README — финал ядра)
 
 Бонусные стадии (после критического пути): Notification Service + Redis, Security / RBAC, Product Service (каталог как источник правды цен).
 
